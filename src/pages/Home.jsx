@@ -12,8 +12,8 @@ import {
   Paper,
   Grid,
   Link,
+  Chip,
 } from "@mui/material";
-import ShieldIcon from "@mui/icons-material/Shield";
 
 const tryPlay = (v) => v?.play?.().catch(() => { /* autoplay may be blocked; ignore */ });
 
@@ -38,7 +38,6 @@ export default function Home() {
     v.addEventListener("loadeddata", onLoadedData);
     document.addEventListener("visibilitychange", onVisibility);
 
-    // si ya está listo cuando montamos
     if (v.readyState >= 2 && !reduceM?.matches) {
       tryPlay(v);
     }
@@ -76,11 +75,11 @@ export default function Home() {
         onPointerDown={() => tryPlay(videoRef.current)} // fallback por gesto del usuario
         sx={{
           position: "relative",
-          minHeight: { xs: "78vh", md: "86vh" },
+          minHeight: { xs: "76vh", md: "84vh" },
           display: "grid",
           placeItems: "center",
           overflow: "hidden",
-          isolation: "isolate", // crea stacking context propio
+          isolation: "isolate",
         }}
       >
         {/* Video */}
@@ -91,7 +90,7 @@ export default function Home() {
           muted
           playsInline
           preload="metadata"
-          poster="/imagen/fondo_01.jpg" // opcional
+          poster="/imagen/fondo_01.jpg"
           style={{
             position: "absolute",
             inset: 0,
@@ -99,81 +98,81 @@ export default function Home() {
             height: "100%",
             objectFit: "cover",
             filter: "saturate(1.02)",
-            zIndex: 0, // base
+            zIndex: 0,
           }}
         >
           <source src="/video.mp4" type="video/mp4" />
           Tu navegador no soporta video en HTML5.
         </video>
 
-        {/* Overlay para legibilidad */}
+        {/* Overlay para legibilidad (ligero) */}
         <Box
           sx={{
             position: "absolute",
             inset: 0,
-            zIndex: 1, // encima del video
+            zIndex: 1,
             background:
-              "linear-gradient(180deg, rgba(14,26,19,.76) 0%, rgba(14,26,19,.62) 40%, rgba(14,26,19,.84) 100%)",
+              "linear-gradient(180deg, rgba(14,26,19,.55) 0%, rgba(14,26,19,.48) 45%, rgba(14,26,19,.70) 100%)",
           }}
         />
 
         {/* Contenido */}
         <Container maxWidth="lg" sx={{ position: "relative", zIndex: 2 }}>
-          <Stack spacing={3} alignItems="center" textAlign="center">
-            {/* Kicker (oculto en xs para no duplicar marca con AppBar) */}
-            <Stack
-              direction="row"
-              alignItems="center"
-              spacing={1}
+          <Stack spacing={2.25} alignItems="center" textAlign="center">
+            {/* Kicker compacto */}
+            <Chip
+              label="Tu Seccional"
+              size="small"
               sx={{
                 display: { xs: "none", sm: "inline-flex" },
-                px: 1.5,
-                py: 0.75,
-                borderRadius: 999,
-                bgcolor: "rgba(46,125,50,.14)",
+                bgcolor: "rgba(46,125,50,.18)",
+                color: "var(--text, #e7f0ea)",
                 border: "1px solid rgba(205,231,206,.14)",
-                width: "fit-content",
-                mx: "auto",
+                fontWeight: 700,
+                letterSpacing: ".08em",
+                textTransform: "uppercase",
+                backdropFilter: "blur(3px)",
               }}
-            >
-              <ShieldIcon fontSize="small" />
-              <Typography variant="body2" sx={{ opacity: 0.95 }}>
-                Seccional UF
-              </Typography>
-            </Stack>
+            />
 
-            {/* Glass content */}
+            {/* Glass content más sutil */}
             <Paper
-              elevation={3}
+              elevation={0}
               sx={{
-                px: { xs: 2.2, md: 4 },
-                py: { xs: 1.8, md: 3 },
-                borderRadius: 3,
-                border: "1px solid rgba(205,231,206,.14)",
-                backgroundImage: "none",
-                backgroundColor: "color-mix(in oklab, var(--bg-2, #1c3a2a), white 3%)",
+                px: { xs: 2, md: 3 },
+                py: { xs: 1.4, md: 2 },
+                borderRadius: 4,
+                border: "1px solid rgba(205,231,206,.12)",
+                backgroundColor: "rgba(7,20,14,.32)", // más transparente
+                backdropFilter: "blur(4px)",
+                maxWidth: "min(720px, 100%)",
               }}
             >
               <Typography
                 id="home-hero-title"
-                variant="h3"
+                variant="h4"
                 sx={{
-                  fontWeight: 800,
+                  fontWeight: 900,
                   letterSpacing: 0.2,
                   textShadow: "0 1px 2px rgba(0,0,0,.25)",
-                  fontSize: "clamp(2rem, 5.2vw, 3.4rem)",
+                  fontSize: "clamp(1.6rem, 4.2vw, 2.4rem)", // más discreto
+                  mb: 0.6,
                 }}
               >
                 Seccional Gran Buenos Aires Sud
               </Typography>
 
               <Typography
-                variant="h6"
-                color="text.secondary"
-                sx={{ maxWidth: 760, mx: "auto", mt: 1.3 }}
+                variant="body1"
+                sx={{
+                  maxWidth: 680,
+                  mx: "auto",
+                  color: "rgba(231,240,234,.88)",
+                  lineHeight: 1.55,
+                }}
               >
-                Comprometidos con tus derechos. Gestionamos afiliaciones, trámites y
-                beneficios con calidez humana.
+                Ayudando a las y los compañeros, trabajando junto a la{" "}
+                <strong>Lista Verde</strong>. Cercanía, gestión y compromiso.
               </Typography>
             </Paper>
 
@@ -181,7 +180,7 @@ export default function Home() {
             <Grid
               container
               spacing={1.2}
-              sx={{ maxWidth: 760, mx: "auto" }}
+              sx={{ maxWidth: 720, mx: "auto" }}
               justifyContent="center"
             >
               <Grid item xs={12} sm={6}>
@@ -257,7 +256,7 @@ export default function Home() {
             Últimas Novedades
           </Typography>
 
-        <Grid container spacing={2}>
+          <Grid container spacing={2}>
             {novedades.map((n, i) => (
               <Grid key={i} item xs={12} sm={6} md={4}>
                 <NovedadCard title={n.title} description={n.description} />

@@ -46,3 +46,9 @@ instance/
 .mypy_cache/
 .pytest_cache/
 .flaskenv
+node_modules
+dist
+.env
+.env.local
+.vscode
+.DS_Store
