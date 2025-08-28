@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+
+    <!-- Título y SEO -->
+    <title>Seccional UF · Gestión de Afiliados</title>
+    <meta
+      name="description"
+      content="Plataforma de la Seccional UF para consultar afiliados, gestionar solicitudes y reclamos, y ver novedades."
+    />
+    <link rel="canonical" href="https://seccional.local/" />
+
+    <!-- Indexación (cambiá a index,follow en prod si querés) -->
+    <meta name="robots" content="noindex,nofollow" />
+
+    <!-- Colores de interfaz -->
+    <meta name="color-scheme" content="dark light" />
+    <meta name="theme-color" content="#0e1a13" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#1c3a2a" media="(prefers-color-scheme: light)" />
+
+    <!-- Favicons / PWA (poné los archivos reales en assets/logos/) -->
+    <link rel="icon" type="image/png" href="/src/assets/logos/favicon.png" />
+    <link rel="apple-touch-icon" href="/src/assets/logos/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="Seccional UF · Gestión de Afiliados" />
+    <meta
+      property="og:description"
+      content="Consultá afiliados, enviá solicitudes y reclamos, y enterate de las últimas novedades."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://seccional.local/" />
+    <meta property="og:image" content="/src/assets/logos/og-default.png" />
+
+    <!-- Twitter Cards -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Seccional UF · Gestión de Afiliados" />
+    <meta
+      name="twitter:description"
+      content="Consultá afiliados, enviá solicitudes y reclamos, y enterate de las últimas novedades."
+    />
+    <meta name="twitter:image" content="/src/assets/logos/og-default.png" />
+
+    <!-- Tipografía -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Preload opcional de logo si lo usás en el loader -->
+    <link rel="preload" as="image" href="/src/assets/logos/logo.svg" />
+
+    <!-- Estilos base del loader y fondo (inline para que aparezca antes de que cargue JS) -->
+    <style>
+      :root {
+        --bg: #0e1a13;         /* verde militar profundo */
+        --bg-elev: #1c3a2a;    /* elevaciones/cards */
+        --accent: #2e7d32;     /* acento */
+        --text: #e7f0ea;       /* texto principal */
+        --text-2: #cde7ce;     /* texto secundario */
+      }
+      @media (prefers-color-scheme: light) {
+        :root {
+          --bg: #f3f6f4;
+          --bg-elev: #e7efe9;
+          --text: #162218;
+          --text-2: #2e7d32;
+        }
+      }
+      html, body {
+        height: 100%;
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: Roboto, system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif;
+        text-rendering: optimizeLegibility;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+      .app-shell {
+        min-height: 100%;
+        display: grid;
+        place-items: center;
+      }
+      /* Pantalla de carga accesible */
+      .loader-card {
+        display: grid;
+        gap: 14px;
+        padding: 28px 32px;
+        background: linear-gradient(180deg, var(--bg-elev), rgba(28,58,42,0.85));
+        border: 1px solid rgba(205,231,206,0.08);
+        border-radius: 16px;
+        box-shadow: 0 6px 30px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.03);
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .brand img {
+        width: 36px;
+        height: 36px;
+      }
+      .brand h1 {
+        font-size: 1.05rem;
+        font-weight: 700;
+        letter-spacing: .4px;
+        margin: 0;
+      }
+      .muted {
+        color: var(--text-2);
+        font-size: 0.95rem;
+        margin: 0;
+      }
+      .spinner {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        border: 3px solid rgba(205,231,206,0.25);
+        border-top-color: var(--accent);
+        animation: spin .9s linear infinite;
+        justify-self: center;
+        margin-top: 6px;
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+      /* Ocultar loader cuando React hidrata y agrega data-app-ready al html (lo haremos en main.jsx) */
+      html[data-app-ready="true"] #preload {
+        display: none;
+      }
+      /* Preferencia de reducción de movimiento */
+      @media (prefers-reduced-motion: reduce) {
+        .spinner { animation: none; border-top-color: rgba(205,231,206,0.55); }
+      }
+      /* Sin JS */
+      noscript {
+        display: block;
+        max-width: 640px;
+        margin: 24px auto;
+        padding: 12px 16px;
+        border: 1px dashed rgba(205,231,206,0.35);
+        border-radius: 12px;
+        color: var(--text);
+        background: rgba(28,58,42,0.35);
+        text-align: center;
+      }
+    </style>
+
+    <!-- Datos estructurados (ajustá cuando tengas dominio/branding final) -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "Seccional UF",
+        "url": "https://seccional.local/",
+        "logo": "/src/assets/logos/og-default.png",
+        "sameAs": []
+      }
+    </script>
+  </head>
+
+  <body>
+    <!-- Shell + Loader accesible (se oculta cuando React marca listo) -->
+    <div id="preload" class="app-shell" role="status" aria-live="polite">
+      <div class="loader-card" aria-label="Cargando aplicación">
+        <div class="brand">
+          <img src="/src/assets/logos/logo.svg" alt="Logo Seccional UF" />
+          <h1>Seccional UF</h1>
+        </div>
+        <p class="muted">Inicializando módulos…</p>
+        <div class="spinner" aria-hidden="true"></div>
+      </div>
+    </div>
+
+    <!-- Punto de montaje de React -->
+    <div id="root" class="app-shell" hidden></div>
+
+    <!-- Entry de Vite/React -->
+    <script type="module" src="/src/main.jsx"></script>
+
+    <!-- Fallback si no hay JS -->
+    <noscript>
+      Esta aplicación necesita JavaScript para funcionar. Por favor, activalo en tu navegador.
+    </noscript>
+  </body>
+</html>

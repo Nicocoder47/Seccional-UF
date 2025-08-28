@@ -1,0 +1,6 @@
+<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <rect width="64" height="64" rx="10" fill="#1c3a2a"/>
+  <circle cx="32" cy="28" r="14" fill="none" stroke="#cde7ce" stroke-width="3"/>
+  <text x="32" y="33" font-size="16" font-family="Segoe UI, Roboto, Arial, sans-serif"
+        fill="#cde7ce" text-anchor="middle" font-weight="700">UF</text>
+</svg>

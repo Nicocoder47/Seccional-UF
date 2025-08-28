@@ -1,0 +1,76 @@
+/* ========= VARIABLES (Theme tokens) ========= */
+:root {
+  /* Paleta base (Light por defecto) */
+  --bg: #f7fbf8;
+  --bg-2: #eef5f0;
+  --surface: #ffffff;
+  --text: #0e1a13;
+  --text-2: #2a4636;
+
+  --accent: #2e7d32;
+  --accent-2: #3aa356;
+
+  /* Bordes y glass */
+  --glass: rgba(255,255,255,.55);
+  --border-weak: rgba(14, 26, 19, 0.12);
+  --border-mid:  rgba(14, 26, 19, 0.18);
+  --border-strong: rgba(14, 26, 19, 0.28);
+
+  /* Tipografía */
+  --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+               Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji",
+               "Segoe UI Emoji", "Segoe UI Symbol";
+
+  /* Espaciado */
+  --space-2xs: .25rem;
+  --space-xs:  .375rem;
+  --space-sm:  .5rem;
+  --space-md:  1rem;
+  --space-lg:  1.5rem;
+  --space-xl:  2rem;
+  --space-2xl: 3rem;
+
+  /* Radios */
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 22px;
+
+  /* Sombras */
+  --shadow-sm: 0 2px 6px rgba(0,0,0,.08);
+  --shadow-md: 0 8px 24px rgba(0,0,0,.12);
+  --shadow-lg: 0 18px 40px rgba(0,0,0,.18);
+
+  /* Estado */
+  --focus: rgba(46, 125, 50, .45);
+
+  /* Z-index */
+  --z-nav: 50;
+  --z-overlay: 60;
+  --z-modal: 70;
+}
+
+/* ========= DARK THEME ========= */
+:root[data-theme="dark"] {
+  --bg: #0e1a13;
+  --bg-2: #13261b;
+  --surface: #0f1e16;
+  --text: #e7f0ea;
+  --text-2: #cde7ce;
+
+  --glass: rgba(20, 40, 30, .55);
+  --border-weak: rgba(205,231,206,.10);
+  --border-mid:  rgba(205,231,206,.18);
+  --border-strong: rgba(205,231,206,.28);
+
+  --shadow-sm: 0 2px 6px rgba(0,0,0,.25);
+  --shadow-md: 0 10px 26px rgba(0,0,0,.35);
+  --shadow-lg: 0 20px 48px rgba(0,0,0,.45);
+
+  --focus: rgba(46, 125, 50, .60);
+}
+
+/* Tipografía fluid */
+@supports (font-variation-settings: normal) {
+  :root { --font-sans: "Inter var", Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Noto Sans"; }
+}

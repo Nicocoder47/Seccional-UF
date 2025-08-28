@@ -1,0 +1,48 @@
+# =====================================
+# 🛑 Archivos y carpetas ignorados
+# =====================================
+
+# Node
+node_modules/
+dist/
+.npm/
+
+# Vite
+.vite/
+.cache/
+*.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+pnpm-error.log*
+
+# Entornos
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# Python / Flask (por si está junto el backend)
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.db
+instance/
+.mypy_cache/
+.pytest_cache/
+.flaskenv

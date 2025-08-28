@@ -1,0 +1,79 @@
+/* ========= UTILITIES: clases rápidas y composables ========= */
+
+/* Display / Flex / Grid */
+.d-flex { display: flex }
+.d-grid { display: grid }
+.flex-col { flex-direction: column }
+.flex-center { display:flex; align-items:center; justify-content:center }
+.items-center { align-items: center }
+.justify-between { justify-content: space-between }
+.gap-xs { gap: var(--space-xs) }
+.gap-sm { gap: var(--space-sm) }
+.gap-md { gap: var(--space-md) }
+.gap-lg { gap: var(--space-lg) }
+
+/* Spacing */
+.mt-0 { margin-top: 0 } .mb-0 { margin-bottom: 0 }
+.mt-sm { margin-top: var(--space-sm) } .mb-sm { margin-bottom: var(--space-sm) }
+.mt-md { margin-top: var(--space-md) } .mb-md { margin-bottom: var(--space-md) }
+.mt-lg { margin-top: var(--space-lg) } .mb-lg { margin-bottom: var(--space-lg) }
+.p-sm { padding: var(--space-sm) }
+.p-md { padding: var(--space-md) }
+.p-lg { padding: var(--space-lg) }
+
+/* Width / Height */
+.w-100 { width: 100% }
+.h-100 { height: 100% }
+
+/* Text */
+.text-muted { color: var(--text-2) }
+.text-center { text-align: center }
+.text-right { text-align: right }
+.lead { font-size: clamp(1rem, 1.2vw + .6rem, 1.25rem); color: var(--text-2) }
+
+/* Radius / Shadow */
+.rounded-sm { border-radius: var(--radius-sm) }
+.rounded-md { border-radius: var(--radius-md) }
+.rounded-lg { border-radius: var(--radius-lg) }
+.shadow-sm { box-shadow: var(--shadow-sm) }
+.shadow-md { box-shadow: var(--shadow-md) }
+.shadow-lg { box-shadow: var(--shadow-lg) }
+
+/* Borders */
+.border { border: 1px solid var(--border-weak) }
+.border-strong { border: 1px solid var(--border-strong) }
+
+/* Visible focus helper */
+.focus-ring { box-shadow: 0 0 0 3px var(--focus) }
+
+/* Max widths */
+.max-640 { max-width: 640px }
+.max-780 { max-width: 780px }
+.max-960 { max-width: 960px }
+
+/* Utilities de estado */
+.hide { display: none !important }
+.show { display: block !important }
+.clickable { cursor: pointer }
+
+/* Animaciones sutiles */
+.fade-in {
+  animation: fadeIn .22s ease-out both;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px) }
+  to   { opacity: 1; transform: translateY(0) }
+}
+
+/* Hero helper */
+.hero {
+  padding: clamp(1.5rem, 4vw, 3rem);
+  display: grid; gap: var(--space-md);
+  background: linear-gradient(180deg, rgba(46,125,50,.12), rgba(46,125,50,0));
+  border: 1px solid var(--border-weak);
+  border-radius: var(--radius-xl);
+}
+.hero h1 {
+  margin: 0;
+  font-size: clamp(1.8rem, 2.4vw + 1rem, 3rem);
+}
