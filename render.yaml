@@ -1,22 +1,46 @@
 services:
+  # === Backend Flask (Supabase REST) ===
   - type: web
     name: seccional-backend
     env: python
     rootDir: backend
     buildCommand: pip install -r requirements.txt
-    # Opción A (más simple) si en backend/app.py exportás "app = create_app()":
     startCommand: gunicorn app:app --bind 0.0.0.0:$PORT
-    # Opción B si NO exportás "app" y querés llamar a la factory:
-    # startCommand: gunicorn app:create_app --bind 0.0.0.0:$PORT
-
     envVars:
       - key: FLASK_ENV
         value: production
       - key: PYTHON_VERSION
         value: 3.11.9
       - key: CORS_ORIGINS
-        value: https://seccional-uf.vercel.app,https://*.vercel.app,http://localhost:5173
+        # Agregamos localhost y cualquier dominio .onrender.com (front en Render)
+        value: https://*.onrender.com,http://localhost:5173,http://127.0.0.1:5173
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_SERVICE_ROLE_KEY
         sync: false
+      # opcional si tu tabla se llama distinto
+      # - key: SUPABASE_TABLE
+      #   value: afiliados_personal
+
+  # === Frontend (Vite estático) ===
+  - type: web
+    name: seccional-frontend
+    env: static
+    rootDir: .
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: NODE_VERSION
+        value: 20.19.0
+      # apunte al backend de Render (se completa después de conocer el dominio)
+      - key: VITE_API_URL
+        value: https://seccional-backend.onrender.com/api
+      - key: VITE_SUPABASE_URL
+        sync: false
+      - key: VITE_SUPABASE_ANON_KEY
+        sync: false
+    routes:
+      # React Router fallback
+      - type: rewrite
+        source: /.* 
+        destination: /index.html

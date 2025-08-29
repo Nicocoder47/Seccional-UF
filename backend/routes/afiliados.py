@@ -1,4 +1,4 @@
-# backend/routes/afiliados.py
+# backend/routes/afiliados.py — Endpoints REST a Supabase
 from __future__ import annotations
 
 from flask import Blueprint, request, jsonify, Response
@@ -8,7 +8,7 @@ import requests
 bp = Blueprint("afiliados", __name__)
 
 # -----------------------------
-# Config y utilidades
+# Config / utilidades
 # -----------------------------
 INT_RE = re.compile(r"^\d+$")
 
@@ -19,8 +19,7 @@ FIELDS_ALL = [
     "direccion","email","celular",
     "denominacion_funcion","denominacion_posicion","legajo",
     "fecha_nacimiento","fecha_primer_ingreso",
-    "creado_en","actualizado_en",
-    # agrega aquí más columnas si existen en tu tabla
+    "creado_en","actualizado_en","apellido_nombre",
 ]
 
 DEFAULT_SELECT = ",".join([
@@ -43,21 +42,23 @@ SAFE_SORT_FIELDS = set([
 ])
 
 def _get_session():
-    """Crea una sesión REST a Supabase leyendo envs en tiempo de request."""
+    """
+    Crea una sesión REST a Supabase.
+    Usamos SERVICE_ROLE tanto para Authorization como para apikey (backend).
+    """
     url   = os.getenv("SUPABASE_URL")
-    s_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")  # Authorization
-    a_key = os.getenv("SUPABASE_ANON_KEY")          # apikey
+    s_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
     table = os.getenv("SUPABASE_TABLE", "afiliados_personal")
-    if not url or not s_key or not a_key:
+    if not url or not s_key:
         return None, None, None
     sess = requests.Session()
     sess.headers.update({
         "Authorization": f"Bearer {s_key}",
-        "apikey": a_key,
+        "apikey": s_key,                   # usamos service role también como apikey
         "Content-Type": "application/json",
-        "Prefer": "count=exact",  # habilita Content-Range para total
+        "Prefer": "count=exact",          # habilita Content-Range para total
     })
-    return url, table, sess
+    return url.rstrip("/"), table, sess
 
 def _clean_dni(s: str|None) -> str|None:
     if not s: return None
@@ -74,7 +75,7 @@ def _parse_total(h: str|None) -> int:
     except Exception: return 0
 
 def _parse_date(s: str|None) -> str|None:
-    """Acepta YYYY-MM-DD o YYYY-MM-DDTHH:MM:SS y devuelve ISO para PostgREST."""
+    """Acepta YYYY-MM-DD o YYYY-MM-DDTHH:MM:SS y devuelve ISO."""
     if not s: return None
     for fmt in ("%Y-%m-%d", "%Y-%m-%dT%H:%M:%S"):
         try:
@@ -86,19 +87,18 @@ def _parse_date(s: str|None) -> str|None:
 def _resolve_select_param(raw: str|None, fallback: str) -> str:
     if not raw:
         return fallback
-    # Limpia, valida columnas y arma la lista segura
     cols = [c.strip() for c in raw.split(",") if c.strip()]
     cols = [c for c in cols if c in FIELDS_ALL]
     return ",".join(cols) if cols else fallback
 
 # -----------------------------
-# GET /api/afiliados
+# GET /api/afiliados/
 # -----------------------------
-@bp.get("")
+@bp.get("/")
 def list_afiliados():
     supa_url, table, sess = _get_session()
     if not sess:
-        return jsonify({"error":"config_error","detail":"Faltan SUPABASE_URL/ANON/SERVICE_ROLE"}), 500
+        return jsonify({"error":"config_error","detail":"Faltan SUPABASE_URL/SERVICE_ROLE"}), 500
 
     t0 = time.perf_counter()
 
@@ -109,7 +109,7 @@ def list_afiliados():
     sector  = _sanitize_like(request.args.get("sector"))
     lugar   = _sanitize_like(request.args.get("lugar_trabajo"))
 
-    # Rango de fechas
+    # Rangos de fecha
     created_from = _parse_date(request.args.get("created_from"))
     created_to   = _parse_date(request.args.get("created_to"))
     updated_from = _parse_date(request.args.get("updated_from"))
@@ -130,46 +130,45 @@ def list_afiliados():
     # Select (whitelist)
     select_param = _resolve_select_param(request.args.get("fields"), DEFAULT_SELECT)
 
-    # Filtros PostgREST
-    filters: dict[str, str] = {}
-    if dni:     filters["dni"] = f"eq.{dni}"
-    if q:       filters["or"]  = f"(apellido.ilike.*{q}*,nombres.ilike.*{q}*,apellido_nombre.ilike.*{q}*)"
-    if empresa: filters["empresa"] = f"ilike.*{empresa}*"
-    if sector:  filters["sector"]  = f"ilike.*{sector}*"
-    if lugar:   filters["lugar_trabajo"] = f"ilike.*{lugar}*"
-    if created_from: filters["creado_en"]      = f"gte.{created_from}"
-    if created_to:   filters["creado_en"]      = f"lt.{created_to}"
-    if updated_from: filters["actualizado_en"] = f"gte.{updated_from}"
-    if updated_to:   filters["actualizado_en"] = f"lt.{updated_to}"
+    # Armamos params como lista de tuplas para permitir keys repetidas (rangos)
+    params: list[tuple[str,str]] = [
+        ("select", select_param),
+        ("order", f"{sort}.{order}"),
+        ("limit", str(page_size)),
+        ("offset", str(offset)),
+    ]
+    if dni:      params.append(("dni", f"eq.{dni}"))
+    if q:        params.append(("or", f"(apellido.ilike.*{q}*,nombres.ilike.*{q}*,apellido_nombre.ilike.*{q}*)"))
+    if empresa:  params.append(("empresa", f"ilike.*{empresa}*"))
+    if sector:   params.append(("sector", f"ilike.*{sector}*"))
+    if lugar:    params.append(("lugar_trabajo", f"ilike.*{lugar}*"))
+    if created_from: params.append(("creado_en", f"gte.{created_from}"))
+    if created_to:   params.append(("creado_en", f"lt.{created_to}"))
+    if updated_from: params.append(("actualizado_en", f"gte.{updated_from}"))
+    if updated_to:   params.append(("actualizado_en", f"lt.{updated_to}"))
 
-    params = {
-        "select": select_param,
-        "order": f"{sort}.{order}",
-        "limit": page_size,
-        "offset": offset,
-        **filters
-    }
-
-    # Llamada
     try:
         r = sess.get(f"{supa_url}/rest/v1/{table}", params=params, timeout=30)
         if r.status_code in (401, 403):
-            return jsonify({"error":"supa_error","detail":"Invalid or unauthorized API key (401/403)"}), 400
+            return jsonify({"error":"supa_error","detail":"Invalid/unauthorized key (401/403)"}), 400
         r.raise_for_status()
         data = r.json()
         total = _parse_total(r.headers.get("content-range"))
     except requests.exceptions.RequestException as e:
         return jsonify({"error":"supa_error","detail":str(e)}), 400
 
-    # CSV
+    # CSV opcional
     if (request.args.get("format") or "").lower() == "csv":
         out = io.StringIO()
         cols = list(data[0].keys()) if data else select_param.split(",")
-        w = csv.DictWriter(out, fieldnames=cols)
-        w.writeheader(); w.writerows(data)
-        return Response(out.getvalue().encode("utf-8-sig"),
-                        mimetype="text/csv",
-                        headers={"Content-Disposition": f'attachment; filename="afiliados_p{page}.csv"'})
+        writer = csv.DictWriter(out, fieldnames=cols)
+        writer.writeheader()
+        writer.writerows(data)
+        return Response(
+            out.getvalue().encode("utf-8-sig"),
+            mimetype="text/csv",
+            headers={"Content-Disposition": f'attachment; filename="afiliados_p{page}.csv"'}
+        )
 
     ms = int((time.perf_counter() - t0) * 1000)
     return jsonify({
@@ -184,25 +183,25 @@ def list_afiliados():
     }), 200
 
 # -----------------------------
-# GET /api/afiliados/<dni> (detalle)
+# GET /api/afiliados/<dni> (detalle por DNI)
 # -----------------------------
 @bp.get("/<dni>")
 def get_by_dni(dni: str):
     supa_url, table, sess = _get_session()
     if not sess:
-        return jsonify({"error":"config_error","detail":"Faltan SUPABASE_URL/ANON/SERVICE_ROLE"}), 500
+        return jsonify({"error":"config_error","detail":"Faltan SUPABASE_URL/SERVICE_ROLE"}), 500
 
     d = _clean_dni(dni)
     if not d:
         return jsonify({"error":"DNI inválido"}), 400
 
     select_param = _resolve_select_param(request.args.get("fields"), DETAIL_SELECT)
-    params = {"select": select_param, "dni": f"eq.{d}", "limit": 1}
+    params = [("select", select_param), ("dni", f"eq.{d}"), ("limit", "1")]
 
     try:
         r = sess.get(f"{supa_url}/rest/v1/{table}", params=params, timeout=30)
         if r.status_code in (401, 403):
-            return jsonify({"error":"supa_error","detail":"Invalid or unauthorized API key (401/403)"}), 400
+            return jsonify({"error":"supa_error","detail":"Invalid/unauthorized key (401/403)"}), 400
         r.raise_for_status()
         rows = r.json()
     except requests.exceptions.RequestException as e:
@@ -220,13 +219,14 @@ def count_afiliados():
     supa_url, table, sess = _get_session()
     if not sess:
         return jsonify({"error":"config_error"}), 500
-    # count=exact con limit=1 es suficiente; el total viene en Content-Range
+
     try:
-        r = sess.get(f"{supa_url}/rest/v1/{table}", params={"select":"id","limit":1}, timeout=30)
+        r = sess.get(f"{supa_url}/rest/v1/{table}", params=[("select","id"),("limit","1")], timeout=30)
         r.raise_for_status()
         total = _parse_total(r.headers.get("content-range"))
     except requests.exceptions.RequestException as e:
         return jsonify({"error":"supa_error","detail":str(e)}), 400
+
     return jsonify({"total": total}), 200
 
 # -----------------------------
@@ -242,13 +242,7 @@ def stats_afiliados():
     if group not in {"empresa","sector","lugar_trabajo"}:
         group = "empresa"
 
-    # Agregación con PostgREST: select=grupo,count:id&group=grupo
-    params = {
-        "select": f"{group},count:id",
-        "group": group,
-        "order": "count.desc",
-        "limit": 200
-    }
+    params = [("select", f"{group},count:id"), ("group", group), ("order", "count.desc"), ("limit", "200")]
     try:
         r = sess.get(f"{supa_url}/rest/v1/{table}", params=params, timeout=30)
         r.raise_for_status()
@@ -256,6 +250,5 @@ def stats_afiliados():
     except requests.exceptions.RequestException as e:
         return jsonify({"error":"supa_error","detail":str(e)}), 400
 
-    # normalizo keys
     out = [{"grupo": row.get(group), "cantidad": row.get("count")} for row in data]
     return jsonify({"group_by": group, "data": out}), 200

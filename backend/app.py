@@ -1,34 +1,50 @@
-# backend/app.py — Modo REST Supabase (sin SQLAlchemy/MySQL)
+# backend/app.py — REST Supabase (sin ORM)
 from flask import Flask, jsonify
 from flask_cors import CORS
 import os
 from dotenv import load_dotenv, find_dotenv
 
-# Importa el blueprint que usa la API REST de Supabase
-# (Asegurate de tener la versión REST de afiliados.py que te pasé)
+# Importa el blueprint con las rutas de afiliados (modo REST)
 from backend.routes.afiliados import bp as afiliados_bp
 
+
 def create_app():
-    # Cargar variables desde backend/.env
-    load_dotenv(find_dotenv())
+    # Carga variables desde el .env más cercano (por ej. backend/.env)
+    load_dotenv(find_dotenv(usecwd=True))
 
     app = Flask(__name__)
 
-    # CORS: permitir front local (Vite)
-    default_origins = "http://localhost:5173,http://127.0.0.1:5173"
-    origins = os.getenv("CORS_ORIGINS", default_origins).split(",")
-    origins = [o.strip() for o in origins if o.strip()]
-    CORS(app, origins=origins, supports_credentials=True)
+    # ===== CORS =====
+    # Orígenes permitidos: localhost (Vite) + dominio de Vercel (prod)
+    default_origins = [
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "https://seccional-uf.vercel.app",
+        "https://*.vercel.app",
+    ]
+    # Permitir override con CORS_ORIGINS="https://foo.com,https://bar.com"
+    extra = os.environ.get("CORS_ORIGINS", "")
+    if extra.strip():
+        default_origins += [o.strip() for o in extra.split(",") if o.strip()]
 
-    # Registrar rutas (REST Supabase)
+    CORS(
+        app,
+        resources={r"/api/*": {"origins": default_origins}},
+        supports_credentials=True,
+        allow_headers=["Content-Type", "Authorization"],
+        methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+        max_age=86400,
+    )
+
+    # ===== Blueprints (API) =====
     app.register_blueprint(afiliados_bp, url_prefix="/api/afiliados")
 
-    # Healthchecks
+    # ===== Healthchecks =====
     @app.get("/api/health")
     def health():
-        # mini verificación de envs críticas
         ok = bool(os.getenv("SUPABASE_URL")) and bool(os.getenv("SUPABASE_SERVICE_ROLE_KEY"))
-        return jsonify(ok=ok), (200 if ok else 500)
+        status = 200 if ok else 500
+        return jsonify(ok=ok, supabase_url=bool(os.getenv("SUPABASE_URL"))), status
 
     @app.get("/ping")
     def ping():
@@ -36,6 +52,10 @@ def create_app():
 
     return app
 
+
+# WSGI entrypoint (gunicorn: "gunicorn backend.app:app")
+app = create_app()
+
 if __name__ == "__main__":
-    app = create_app()
-    app.run(debug=True, host="0.0.0.0", port=5000)
+    # Desarrollo local
+    app.run(debug=True, host="0.0.0.0", port=int(os.getenv("PORT", 5000)))
