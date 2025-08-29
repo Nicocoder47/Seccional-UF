@@ -5,20 +5,20 @@ services:
     env: python
     rootDir: backend
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers=2 --threads=4
+    healthCheckPath: /api/health
     envVars:
       - key: FLASK_ENV
         value: production
       - key: PYTHON_VERSION
         value: 3.11.9
       - key: CORS_ORIGINS
-        # Agregamos localhost y cualquier dominio .onrender.com (front en Render)
         value: https://*.onrender.com,http://localhost:5173,http://127.0.0.1:5173
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_SERVICE_ROLE_KEY
         sync: false
-      # opcional si tu tabla se llama distinto
+      # Si tu tabla no es la default, destapa y poné el nombre:
       # - key: SUPABASE_TABLE
       #   value: afiliados_personal
 
@@ -32,7 +32,7 @@ services:
     envVars:
       - key: NODE_VERSION
         value: 20.19.0
-      # apunte al backend de Render (se completa después de conocer el dominio)
+      # ⚠️ Actualizá esto con la URL real del backend después del 1er deploy
       - key: VITE_API_URL
         value: https://seccional-backend.onrender.com/api
       - key: VITE_SUPABASE_URL
@@ -40,7 +40,6 @@ services:
       - key: VITE_SUPABASE_ANON_KEY
         sync: false
     routes:
-      # React Router fallback
       - type: rewrite
-        source: /.* 
+        source: /.*
         destination: /index.html
