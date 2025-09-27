@@ -4,15 +4,17 @@ import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "node:path";
 
-/** Lee y castea variables .env con prefijo VITE_ */
+/** 🔹 Lee variables .env (prefijo VITE_) */
 function readEnv(mode) {
   const raw = loadEnv(mode, process.cwd(), "");
-  const get = (k, def) => (raw[k] ?? def);
-  // URLs
+  const get = (k, def) => raw[k] ?? def;
+
   const API_URL = get("VITE_API_URL", "http://localhost:5000/api");
-  // Acepta API_URL sin /api: derivamos origen siempre
   let API_ORIGIN = "http://localhost:5000";
-  try { API_ORIGIN = new URL(API_URL).origin; } catch {}
+  try {
+    API_ORIGIN = new URL(API_URL).origin;
+  } catch {}
+
   return {
     VITE_API_URL: API_URL,
     API_ORIGIN,
@@ -26,13 +28,6 @@ function readEnv(mode) {
 export default defineConfig(({ mode }) => {
   const env = readEnv(mode);
   const isProd = mode === "production";
-
-  // Pequeña validación útil en dev
-  if (!env.VITE_SUPABASE_URL || !env.VITE_SUPABASE_ANON_KEY) {
-    console.warn(
-      "[vite] Faltan variables de Supabase: VITE_SUPABASE_URL y/o VITE_SUPABASE_ANON_KEY"
-    );
-  }
 
   return {
     plugins: [
@@ -49,6 +44,7 @@ export default defineConfig(({ mode }) => {
       },
     },
 
+    // 🔹 Desarrollo local (proxy a backend Flask)
     server: {
       host: true,
       port: 5173,
@@ -56,12 +52,10 @@ export default defineConfig(({ mode }) => {
       cors: true,
       hmr: { overlay: true },
       proxy: {
-        // API Flask → forward 1:1 (evita CORS en dev)
         "/api": {
           target: env.API_ORIGIN,
           changeOrigin: true,
           secure: false,
-          // deja la ruta tal cual ("/api/...") hacia el backend
           rewrite: (p) => p,
         },
         "/uploads": {
@@ -72,16 +66,16 @@ export default defineConfig(({ mode }) => {
       },
     },
 
+    // 🔹 Build para producción (Vercel)
     build: {
       target: "es2020",
       outDir: "dist",
       assetsDir: "assets",
       cssCodeSplit: true,
+      sourcemap: false,
       chunkSizeWarningLimit: 900,
-      sourcemap: false, // en prod apagado para menor peso
       rollupOptions: {
         output: {
-          // Split por paquetes más usados
           manualChunks(id) {
             if (id.includes("node_modules")) {
               if (id.includes("react") || id.includes("react-router")) return "react";
@@ -119,9 +113,7 @@ export default defineConfig(({ mode }) => {
         "zustand",
         "@supabase/supabase-js",
       ],
-      esbuildOptions: {
-        target: "es2020",
-      },
+      esbuildOptions: { target: "es2020" },
     },
 
     css: {
@@ -129,22 +121,16 @@ export default defineConfig(({ mode }) => {
       modules: { localsConvention: "camelCaseOnly" },
     },
 
-    // Definiciones globales disponibles en runtime (no sensibles)
     define: {
       __APP_NAME__: JSON.stringify(env.VITE_APP_NAME),
       __APP_ENV__: JSON.stringify(env.VITE_APP_ENV),
-      // Si querés leerlas como constantes globales además de import.meta.env:
       __SUPABASE_URL__: JSON.stringify(env.VITE_SUPABASE_URL),
       __SUPABASE_ANON__: JSON.stringify(env.VITE_SUPABASE_ANON_KEY),
     },
 
-    // Minificación/stripping extra para prod (opcional)
     esbuild: isProd
       ? {
-          // Quita logs ruidosos en prod; deja warn/error
           drop: ["console", "debugger"],
-          // Si querés conservar console.error:
-          // pure: ["console.debug","console.info","console.log"],
         }
       : undefined,
   };

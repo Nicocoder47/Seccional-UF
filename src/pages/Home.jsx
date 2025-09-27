@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState, useMemo } from "react";
 import { Link as RouterLink } from "react-router-dom";
 import NovedadCard from "@/components/NovedadCard";
 
@@ -15,30 +15,63 @@ import {
   Chip,
 } from "@mui/material";
 
-const tryPlay = (v) => v?.play?.().catch(() => { /* autoplay may be blocked; ignore */ });
+const tryPlay = (v) => v?.play?.().catch(() => { /* autoplay puede bloquearse; ignorar */ });
+
+/** Hook simple para revelar elementos al hacer scroll */
+function useReveal(selector = "[data-reveal]", rootMargin = "0px 0px -12% 0px") {
+  useEffect(() => {
+    const prefersReduce = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+    if (prefersReduce) return; // no animar si el usuario lo pide
+
+    const els = Array.from(document.querySelectorAll(selector));
+    if (!els.length) return;
+
+    const obs = new IntersectionObserver((entries) => {
+      for (const e of entries) {
+        if (e.isIntersecting) {
+          e.target.classList.add("is-revealed");
+          obs.unobserve(e.target);
+        }
+      }
+    }, { rootMargin, threshold: 0.08 });
+
+    els.forEach(el => obs.observe(el));
+    return () => obs.disconnect();
+  }, [selector, rootMargin]);
+}
 
 export default function Home() {
   const videoRef = useRef(null);
+  const [videoReady, setVideoReady] = useState(false);
+  const [showVideo, setShowVideo] = useState(false);
 
-  // Reintenta reproducir al tener datos y al volver a la pestaña
+  // Activa el video un instante después para evitar "flash" del poster
+  useEffect(() => {
+    const tm = setTimeout(() => setShowVideo(true), 300); // delay corto
+    return () => clearTimeout(tm);
+  }, []);
+
+  // Reintentar reproducir al tener datos y al volver a la pestaña
   useEffect(() => {
     const v = videoRef.current;
     if (!v) return;
 
     const reduceM = window.matchMedia?.("(prefers-reduced-motion: reduce)");
+    const wantsMotion = !(reduceM && reduceM.matches);
 
     const onLoadedData = () => {
-      if (!reduceM?.matches) tryPlay(v);
+      setVideoReady(true);
+      if (wantsMotion) tryPlay(v);
     };
-
     const onVisibility = () => {
-      if (!document.hidden && !reduceM?.matches) tryPlay(v);
+      if (!document.hidden && wantsMotion) tryPlay(v);
     };
 
     v.addEventListener("loadeddata", onLoadedData);
     document.addEventListener("visibilitychange", onVisibility);
 
-    if (v.readyState >= 2 && !reduceM?.matches) {
+    if (v.readyState >= 2 && wantsMotion) {
+      setVideoReady(true);
       tryPlay(v);
     }
 
@@ -46,7 +79,15 @@ export default function Home() {
       v.removeEventListener("loadeddata", onLoadedData);
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, []);
+  }, [showVideo]);
+
+  // Revelar secciones en scroll
+  useReveal();
+
+  const prefersReduce = useMemo(
+    () => window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ?? false,
+    []
+  );
 
   const novedades = [
     {
@@ -80,46 +121,68 @@ export default function Home() {
           placeItems: "center",
           overflow: "hidden",
           isolation: "isolate",
+          // Fallback: poster + gradiente mientras el video no está listo
+          backgroundImage: !videoReady
+            ? `linear-gradient(rgba(14,26,19,.55), rgba(14,26,19,.7)), url("/imagen/hero_poster.jpg")`
+            : "none",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
         }}
       >
-        {/* Video */}
-        <video
-          ref={videoRef}
-          autoPlay
-          loop
-          muted
-          playsInline
-          preload="metadata"
-          poster="/imagen/fondo_01.jpg"
-          style={{
-            position: "absolute",
-            inset: 0,
-            width: "100%",
-            height: "100%",
-            objectFit: "cover",
-            filter: "saturate(1.02)",
-            zIndex: 0,
-          }}
-        >
-          <source src="/video.mp4" type="video/mp4" />
-          Tu navegador no soporta video en HTML5.
-        </video>
+        {/* Video (se monta luego de un pequeño delay para evitar parpadeos) */}
+        {showVideo && (
+          <video
+            ref={videoRef}
+            autoPlay
+            loop
+            muted
+            playsInline
+            preload="metadata"
+            poster="/imagen/hero_poster.jpg"
+            style={{
+              position: "absolute",
+              inset: 0,
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              filter: "saturate(1.02)",
+              opacity: videoReady ? 1 : 0,               // desvanecido
+              transition: "opacity 520ms ease",
+              zIndex: 0,
+            }}
+          >
+            <source src="/video.mp4" type="video/mp4" />
+            Tu navegador no soporta video en HTML5.
+          </video>
+        )}
 
-        {/* Overlay para legibilidad (ligero) */}
+        {/* Overlay para legibilidad */}
         <Box
           sx={{
             position: "absolute",
             inset: 0,
             zIndex: 1,
+            pointerEvents: "none",
             background:
-              "linear-gradient(180deg, rgba(14,26,19,.55) 0%, rgba(14,26,19,.48) 45%, rgba(14,26,19,.70) 100%)",
+              "linear-gradient(180deg, rgba(14,26,19,.48) 0%, rgba(14,26,19,.44) 45%, rgba(14,26,19,.70) 100%)",
           }}
         />
 
         {/* Contenido */}
         <Container maxWidth="lg" sx={{ position: "relative", zIndex: 2 }}>
-          <Stack spacing={2.25} alignItems="center" textAlign="center">
-            {/* Kicker compacto */}
+          <Stack
+            spacing={2.25}
+            alignItems="center"
+            textAlign="center"
+            data-reveal
+            sx={{
+              opacity: 0,
+              transform: "translateY(10px)",
+              transition: prefersReduce ? "none" : "opacity .6s ease, transform .6s ease",
+              "&.is-revealed": { opacity: 1, transform: "none" },
+            }}
+          >
+            {/* Kicker compacto con leve brillo */}
             <Chip
               label="Tu Seccional"
               size="small"
@@ -132,10 +195,16 @@ export default function Home() {
                 letterSpacing: ".08em",
                 textTransform: "uppercase",
                 backdropFilter: "blur(3px)",
+                boxShadow: "0 0 0 0 rgba(46,125,50,.0)",
+                animation: prefersReduce ? "none" : "pulseGlow 3.6s ease-in-out infinite",
+                "@keyframes pulseGlow": {
+                  "0%,100%": { boxShadow: "0 0 0 0 rgba(46,125,50,.0)" },
+                  "50%": { boxShadow: "0 0 18px 2px rgba(46,125,50,.25)" },
+                },
               }}
             />
 
-            {/* Glass content más sutil */}
+            {/* Glass content sutil */}
             <Paper
               elevation={0}
               sx={{
@@ -143,9 +212,9 @@ export default function Home() {
                 py: { xs: 1.4, md: 2 },
                 borderRadius: 4,
                 border: "1px solid rgba(205,231,206,.12)",
-                backgroundColor: "rgba(7,20,14,.32)", // más transparente
+                backgroundColor: "rgba(7,20,14,.32)",
                 backdropFilter: "blur(4px)",
-                maxWidth: "min(720px, 100%)",
+                maxWidth: "min(760px, 100%)",
               }}
             >
               <Typography
@@ -155,7 +224,7 @@ export default function Home() {
                   fontWeight: 900,
                   letterSpacing: 0.2,
                   textShadow: "0 1px 2px rgba(0,0,0,.25)",
-                  fontSize: "clamp(1.6rem, 4.2vw, 2.4rem)", // más discreto
+                  fontSize: "clamp(1.7rem, 4.3vw, 2.6rem)",
                   mb: 0.6,
                 }}
               >
@@ -165,9 +234,9 @@ export default function Home() {
               <Typography
                 variant="body1"
                 sx={{
-                  maxWidth: 680,
+                  maxWidth: 720,
                   mx: "auto",
-                  color: "rgba(231,240,234,.88)",
+                  color: "rgba(231,240,234,.9)",
                   lineHeight: 1.55,
                 }}
               >
@@ -176,69 +245,65 @@ export default function Home() {
               </Typography>
             </Paper>
 
-            {/* Acciones */}
+            {/* Acciones con micro-interacciones */}
             <Grid
               container
               spacing={1.2}
-              sx={{ maxWidth: 720, mx: "auto" }}
+              sx={{ maxWidth: 760, mx: "auto" }}
               justifyContent="center"
             >
-              <Grid item xs={12} sm={6}>
-                <Button
-                  component={RouterLink}
-                  to="/afiliados"
-                  fullWidth
-                  variant="contained"
-                  size="large"
-                  sx={{ borderRadius: 2 }}
-                >
-                  👥 Ir a Afiliados
-                </Button>
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <Button
-                  component={RouterLink}
-                  to="/afiliados/buscar"
-                  fullWidth
-                  variant="outlined"
-                  size="large"
-                  sx={{ borderRadius: 2 }}
-                >
-                  🔍 Consultar por DNI
-                </Button>
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <Button
-                  component={RouterLink}
-                  to="/tramites"
-                  fullWidth
-                  variant="outlined"
-                  size="large"
-                  sx={{ borderRadius: 2 }}
-                >
-                  🗂️ Iniciar Trámite
-                </Button>
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <Button
-                  component={RouterLink}
-                  to="/contacto"
-                  fullWidth
-                  size="large"
-                  variant="contained"
-                  sx={{
-                    borderRadius: 2,
+              {[
+                {
+                  to: "/afiliados",
+                  label: "👥 Ir a Afiliados",
+                  variant: "contained",
+                },
+                {
+                  to: "/afiliados/buscar",
+                  label: "🔍 Consultar por DNI",
+                  variant: "outlined",
+                },
+                {
+                  to: "/tramites",
+                  label: "🗂️ Iniciar Trámite",
+                  variant: "outlined",
+                },
+                {
+                  to: "/contacto",
+                  label: "🗣️ Contanos cómo estás",
+                  variant: "contained",
+                  sx: {
                     bgcolor: "#f74f8a",
                     "&:hover": { bgcolor: "#f75c92" },
                     boxShadow: "0 10px 28px rgba(247,79,138,.25)",
-                  }}
-                >
-                  🗣️ Contanos cómo estás
-                </Button>
-              </Grid>
+                  },
+                },
+              ].map((btn, i) => (
+                <Grid key={i} item xs={12} sm={6}>
+                  <Button
+                    component={RouterLink}
+                    to={btn.to}
+                    fullWidth
+                    variant={btn.variant}
+                    size="large"
+                    sx={{
+                      borderRadius: 2,
+                      transform: "translateY(0)",
+                      transition: prefersReduce ? "none" : "transform .18s ease, box-shadow .18s ease",
+                      "&:hover": {
+                        transform: "translateY(-2px)",
+                        boxShadow: "0 10px 24px rgba(0,0,0,.18)",
+                      },
+                      ...(btn.sx || {}),
+                    }}
+                  >
+                    {btn.label}
+                  </Button>
+                </Grid>
+              ))}
             </Grid>
 
-            <Typography variant="body2" color="text.secondary" sx={{ opacity: 0.9 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ opacity: 0.95 }}>
               📍 Remedios de Escalada, Buenos Aires
             </Typography>
           </Stack>
@@ -251,26 +316,55 @@ export default function Home() {
           <Typography
             id="news-title"
             variant="h5"
-            sx={{ fontWeight: 800, mb: 2.5, textAlign: "center" }}
+            data-reveal
+            sx={{
+              fontWeight: 800,
+              mb: 2.5,
+              textAlign: "center",
+              opacity: 0,
+              transform: "translateY(10px)",
+              transition: prefersReduce ? "none" : "opacity .6s ease, transform .6s ease",
+              "&.is-revealed": { opacity: 1, transform: "none" },
+            }}
           >
             Últimas Novedades
           </Typography>
 
           <Grid container spacing={2}>
             {novedades.map((n, i) => (
-              <Grid key={i} item xs={12} sm={6} md={4}>
+              <Grid
+                key={i}
+                item
+                xs={12}
+                sm={6}
+                md={4}
+                data-reveal
+                style={{ opacity: 0, transform: "translateY(12px)" }}
+                className="reveal-card"
+              >
                 <NovedadCard title={n.title} description={n.description} />
               </Grid>
             ))}
           </Grid>
 
-          <Stack alignItems="center" sx={{ mt: 3 }}>
+          <Stack
+            alignItems="center"
+            sx={{ mt: 3 }}
+            data-reveal
+            style={{ opacity: 0, transform: "translateY(10px)" }}
+          >
             <Link component={RouterLink} to="/novedades" underline="hover" color="text.secondary">
               Ver más novedades →
             </Link>
           </Stack>
         </Container>
       </Box>
+
+      {/* Estilos puntuales para revelar cards */}
+      <style>{`
+        .is-revealed { opacity: 1 !important; transform: none !important; }
+        .reveal-card.is-revealed { transition: opacity .55s ease, transform .55s ease; }
+      `}</style>
     </>
   );
 }

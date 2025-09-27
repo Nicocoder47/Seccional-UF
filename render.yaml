@@ -1,45 +1,16 @@
 services:
-  # === Backend Flask (Supabase REST) ===
+  # === Backend Flask ===
   - type: web
     name: seccional-backend
     env: python
     rootDir: backend
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers=2 --threads=4
-    healthCheckPath: /api/health
+    startCommand: gunicorn wsgi:app --bind 0.0.0.0:$PORT --timeout 120
     envVars:
-      - key: FLASK_ENV
-        value: production
       - key: PYTHON_VERSION
         value: 3.11.9
+      - key: FLASK_ENV
+        value: production
       - key: CORS_ORIGINS
         value: https://*.onrender.com,http://localhost:5173,http://127.0.0.1:5173
-      - key: SUPABASE_URL
-        sync: false
-      - key: SUPABASE_SERVICE_ROLE_KEY
-        sync: false
-      # Si tu tabla no es la default, destapa y poné el nombre:
-      # - key: SUPABASE_TABLE
-      #   value: afiliados_personal
-
-  # === Frontend (Vite estático) ===
-  - type: web
-    name: seccional-frontend
-    env: static
-    rootDir: .
-    buildCommand: npm ci && npm run build
-    staticPublishPath: dist
-    envVars:
-      - key: NODE_VERSION
-        value: 20.19.0
-      # ⚠️ Actualizá esto con la URL real del backend después del 1er deploy
-      - key: VITE_API_URL
-        value: https://seccional-backend.onrender.com/api
-      - key: VITE_SUPABASE_URL
-        sync: false
-      - key: VITE_SUPABASE_ANON_KEY
-        sync: false
-    routes:
-      - type: rewrite
-        source: /.*
-        destination: /index.html
+      # acá agregás tus DB envs

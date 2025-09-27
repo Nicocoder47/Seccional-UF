@@ -49,11 +49,33 @@ export async function getAfiliado(id) {
   return handle(res); // -> Afiliado
 }
 
-/** Busca por DNI (con exact=true para coincidencia exacta) */
-export async function getByDni(dni, { exact = true } = {}) {
+
+/**
+ * Busca un afiliado por DNI usando el endpoint correcto del backend.
+ * Devuelve null si no existe o si hay error 404.
+ * Si el backend devuelve un objeto con {data, found}, retorna data si found=true, sino null.
+ */
+export async function getByDni(dni) {
   if (!dni) throw new Error("dni requerido");
-  const res = await fetch(`${BASE}/buscar${qs({ dni, exact })}`, { credentials: "include" });
-  return handle(res); // -> Afiliado | Afiliado[]
+  const url = `${BASE}/dni/${encodeURIComponent(dni)}`;
+  const res = await fetch(url, { credentials: "include" });
+  if (res.status === 404) return null;
+  let data = null;
+  try {
+    data = await res.json();
+  } catch (_) {}
+  if (!res.ok) {
+    const msg = data?.message || data?.error || `Error ${res.status}`;
+    const err = new Error(msg);
+    err.status = res.status;
+    err.data = data;
+    throw err;
+  }
+  // Compatibilidad con backend: {data, found}
+  if (data && typeof data === "object" && "found" in data) {
+    return data.found ? data.data : null;
+  }
+  return data;
 }
 
 /** Crea un afiliado */
